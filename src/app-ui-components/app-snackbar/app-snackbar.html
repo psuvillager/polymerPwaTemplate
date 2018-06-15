@@ -1,0 +1,272 @@
+<!--
+@license
+Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<!--
+Material Design Snackbar
+https://material.google.com/components/snackbars-toasts.html
+-->
+
+<link rel="import" href="../../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../../bower_components/iron-icon/iron-icon.html">
+<link rel="import" href="../../../bower_components/paper-toast/paper-toast.html">
+<link rel="import" href="../../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../../bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../../../bower_components/paper-tooltip/paper-tooltip.html">
+<link rel="import" href="app-icons-snackbar.html">
+
+<dom-module id="app-snackbar">
+
+  <template>
+
+    <style>
+
+      :host {
+        --paper-icon-button-size: 40px;
+
+        display: block;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      .Snackbar {
+        @apply(--layout-horizontal);
+        @apply(--layout-justified);
+        @apply(--layout-center);
+
+        color: #fff;
+        margin: calc(var(--gutter) / 2) 0 0 0;
+        padding: 14px calc(24px - (var(--touch-target-size) - var(--icon-size)) / 2) 14px 24px;
+        width: 100%;
+      }
+
+      .Snackbar.confirm {
+        border-bottom: 2px solid var(--paper-green-a400);
+      }
+
+      .Snackbar.confirm .Snackbar-icon {
+        color: var(--paper-green-a400);
+      }
+
+      .Snackbar.error {
+        border-bottom: 2px solid var(--paper-red-a200);
+      }
+
+      .Snackbar.error .Snackbar-icon {
+        color: var(--paper-red-a200);
+      }
+
+      .Snackbar.info .Snackbar-icon {
+        color: var(--paper-light-blue-a200);
+      }
+
+      .Snackbar.warning {
+        border-bottom: 2px solid var(--paper-amber-a200);
+      }
+
+      .Snackbar.warning .Snackbar-icon {
+        color: var(--paper-amber-a200);
+      }
+
+      .Snackbar-button {
+        @apply(--paper-font-common-nowrap);
+
+        color: var(--light-accent-color);
+        font-size: var(--button-font-size);
+        font-weight: 500;
+        height: var(--touch-target-size);
+        letter-spacing: var(--small-font-letter-spacing);
+        margin: 0 0 0 24px;
+        min-width: var(--touch-target-size);
+        padding: calc((var(--touch-target-size) - var(--line-height)) / 2) 12px;
+      }
+
+      .Snackbar-icon {
+        margin-right: 16px;
+      }
+
+      .Snackbar-iconButton {
+        box-sizing: border-box;
+        cursor: pointer;
+        height: var(--touch-target-size);
+        margin-left: 12px; /* 24px - 12px */
+        outline: none;
+        padding: calc((var(--touch-target-size) - var(--paper-icon-button-size)) / 2)
+                 calc((var(--touch-target-size) - var(--paper-icon-button-size)) / 2);
+        width: var(--touch-target-size);
+      }
+
+      .Snackbar-iconButton paper-icon-button {
+        --paper-icon-button-ink-color: #fff;
+      }
+
+      .Snackbar-message {
+        display: inline-block;
+        margin-right: 12px;
+        min-height: 24px;
+      }
+
+      /* Tablet wide */
+      @media screen and (min-width: 600px) {
+        .Snackbar {
+          margin: calc(var(--gutter) / 2) var(--screen-edge-margin) var(--gutter) var(--screen-edge-margin);
+          width: auto;
+        }
+
+        .Snackbar-button,
+        .Snackbar-iconButton {
+          margin-left: 36px; /* 48px - 12px */
+        }
+      }
+
+      /* Laptop wide */
+      @media screen and (min-width: 960px) {
+        .Snackbar {
+          padding: 0 calc(var(--gutter) - (var(--touch-target-size) - var(--icon-size)) / 2)
+                   0 var(--gutter);
+        }
+      }
+
+    </style>
+
+    <paper-toast class$="Snackbar {{_type}}" id="snackbar">
+
+      <iron-icon class$="Snackbar-icon {{_icon}}" icon="snackbar:{{_icon}}" hidden$="{{!app.isTabletWide}}"></iron-icon>
+
+      <div class="Snackbar-message">{{_message}}</div>
+
+      <paper-button class="Snackbar-button" id="button" hidden$="{{!_buttonText}}" on-tap="_onButtonTap">
+        {{_buttonText}}
+      </paper-button>
+
+      <div class="Snackbar-iconButton" hidden$="{{_buttonText}}" on-tap="_onButtonTap">
+        <paper-icon-button id="iconButton"
+          icon="snackbar:close"
+          aria-label$="{{localize('close')}}"></paper-icon-button>
+      </div>
+
+      <paper-tooltip class="Tooltip" for="iconButton" offset="0"
+                     hidden$="{{_buttonText}}">{{localize('close')}}</paper-tooltip>
+
+    </paper-toast>
+
+  </template>
+
+  <script>
+
+    Polymer({
+
+      is: 'app-snackbar',
+
+      properties: {
+        app: Object,
+
+        _buttonTapHandler: {
+          type: Function,
+          value: null
+        },
+
+        _buttonText: {
+          type: String,
+          value: ''
+        },
+
+        _defaultDuration: {
+          type: Number,
+          value: 10000
+        },
+
+        _icon: {
+          type: String,
+          value: ''
+        },
+
+        _isLocalesLoaded: {
+          type: Boolean,
+          value: false
+        },
+
+        _message: {
+          type: String,
+          value: ''
+        },
+
+        _type: {
+          type: String,
+          value: ''
+        }
+      },
+
+      behaviors: [
+        AppBehaviors.AppLocalizeBehavior
+      ],
+
+      listeners: {
+        'app-resources-loaded': '_onLocalesLoaded'
+      },
+
+      show: function(data) {
+        // Close snackbar for reset duration
+        this.$.snackbar.close();
+
+        if (typeof data === 'object') {
+          this._buttonTapHandler = data.buttonTapHandler || null;
+          this._buttonText = data.buttonText;
+          this._icon = data.icon || data.type || 'info';
+          this._message = data.message;
+          this._type = data.type || 'info';
+          this.$.snackbar.duration = data.duration >= 0 ? data.duration : this._defaultDuration;
+        } else if (typeof data === 'string') {
+          this._buttonTapHandler = null;
+          this._icon = 'info';
+          this._message = data;
+          this._type = 'info';
+          this.$.snackbar.duration = this._defaultDuration;
+        }
+
+        if (this._isLocalesLoaded) {
+          this._showSnackbar();
+        } else {
+          this.loadLocales(this.is);
+        }
+      },
+
+      _onButtonTap: function() {
+        if (typeof this._buttonTapHandler === 'function') {
+          this._buttonTapHandler();
+        }
+
+        this.$.snackbar.close();
+      },
+
+      _onLocalesLoaded: function(event) {
+        event.stopPropagation();
+        this._isLocalesLoaded = true;
+        this._showSnackbar();
+      },
+
+      _showSnackbar: function() {
+        if (this._buttonText) {
+          this._buttonText = this.localize(this._buttonText);
+        }
+
+        try {
+          this._message = this.localize(this._message);
+        } catch(e) {}
+
+        this.$.snackbar.open();
+      }
+
+    });
+
+  </script>
+
+</dom-module>

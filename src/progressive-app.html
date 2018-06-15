@@ -1,0 +1,321 @@
+<!--
+@license
+Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<script>
+
+  // Create namespace for app behaviors
+  window.AppBehaviors = window.AppBehaviors || {};
+
+</script>
+
+<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/app-route/app-location.html">
+<link rel="import" href="../bower_components/app-route/app-route.html">
+<link rel="import" href="app-init.html">
+<link rel="import" href="app-shell/app-shell.html">
+<link rel="import" href="app-storage.html">
+<link rel="import" href="app-themes/current-theme/global-styles/global-styles.html">
+
+<dom-module id="progressive-app">
+
+  <template>
+
+    <style>
+
+      :host {
+        /* TODO: Remove this background image from home page - use :host(.foo)::after */
+        background-image: url('data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBDABsSFBcUERsXFhceHBsgKEIrKCUlKFE6PTBCYFVlZF9VXVtqeJmBanGQc1tdhbWGkJ6jq62rZ4C8ybqmx5moq6T/2wBDARweHigjKE4rK06kbl1upKSkpKSkpKSkpKSkpKSkpKSkpKSkpKSkpKSkpKSkpKSkpKSkpKSkpKSkpKSkpKSkpKT/wgARCAAGAAoDAREAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAgT/xAAVAQEBAAAAAAAAAAAAAAAAAAADBP/aAAwDAQACEAMQAAABFM9pJ//EABcQAQADAAAAAAAAAAAAAAAAAAABAhH/2gAIAQEAAQUCrDH/xAAUEQEAAAAAAAAAAAAAAAAAAAAQ/9oACAEDAQE/AT//xAAVEQEBAAAAAAAAAAAAAAAAAAAAEf/aAAgBAgEBPwFX/8QAFBABAAAAAAAAAAAAAAAAAAAAEP/aAAgBAQAGPwI//8QAFhABAQEAAAAAAAAAAAAAAAAAACEB/9oACAEBAAE/IbMh/9oADAMBAAIAAwAAABCj/8QAFhEBAQEAAAAAAAAAAAAAAAAAAQAR/9oACAEDAQE/EF1gv//EABYRAQEBAAAAAAAAAAAAAAAAAAEAIf/aAAgBAgEBPxBwmf/EABYQAQEBAAAAAAAAAAAAAAAAACEAQf/aAAgBAQABPxAcBy//2Q==');
+        background-position: center top;
+        background-size: cover;
+        display: block;
+        min-height: 100vh;
+      }
+
+      /* TODO: Move to :host */
+      .Shell--backgroundImage {
+        background-image: url('../images/background.jpg');
+        background-position: center top;
+        background-size: cover;
+        opacity: 0;
+      }
+
+      .Shell--backgroundImage.loaded {
+        opacity: 1;
+        transition: opacity 0.5s;
+      }
+
+      .Shell--primaryBackground {
+        background-color: var(--primary-background-color);
+      }
+
+      .Shell--secondaryBackground {
+        background-color: var(--secondary-background-color);
+      }
+
+    </style>
+
+    <app-location route="{{_route}}"></app-location>
+    <app-route pattern="/:page" route="{{_route}}" data="{{_routeData}}"></app-route>
+
+    <app-init></app-init>
+
+    <app-scrollpos-control selected="[[page]]"></app-scrollpos-control>
+
+    <app-storage app="{{app}}"></app-storage>
+
+    <app-shell class$="Shell {{_computeShellBackgroundClasses(_routeData.page)}}"
+               id="shell" app="{{app}}" page="[[page]]" route="{{_route}}"></app-shell>
+
+    <app-auth id="auth" app="{{app}}" route="{{_route}}"></app-auth>
+
+    <app-snackbar id="snackbar" app="[[app]]"></app-snackbar>
+
+    <app-breakpoints app="{{app}}"></app-breakpoints>
+
+    <app-service-worker></app-service-worker>
+
+    <!-- Dummy <img> elements to use for loading the background image of app-shell and app-header. -->
+    <img id="background" hidden on-load="_onBackgroundLoad">
+
+  </template>
+
+  <script>
+
+    // Performance logging
+    window.performance && performance.mark && performance.mark('app - before register');
+
+    Polymer({
+
+      is: 'progressive-app',
+
+      properties: {
+        app: {
+          type: Object,
+          value: {
+            baseUrl: window.BASE_URL,
+            currentUser: {},
+            // Responsive handlers using Material Design breakpoints
+            // http://www.google.com/design/spec/layout/adaptive-ui.html#adaptive-ui-breakpoints
+            isTabletWide: window.matchMedia('screen and (min-width:600px)').matches,
+            isLaptopWide: window.matchMedia('screen and (min-width:960px)').matches,
+            isLargeWide: window.matchMedia('screen and (min-width:1600px)').matches,
+            isPrintMode: window.matchMedia('print').matches,
+            isOffline: !navigator.onLine,
+            name: window.APP_NAME,
+            pageTitle: '',
+            userAuthEmail: ''
+          }
+        },
+
+        page: String,
+
+        _isBackgroundLoaded: {
+          type: Boolean,
+          value: false
+        },
+
+        _isSetCssProperties: {
+          type: Boolean,
+          value: false
+        }
+      },
+
+      listeners: {
+        'announce': '_onAnnounce',
+        'app-auth-on-button-tap': '_onAppAuthButtonTap',
+        'app-init': '_onAppInit',
+        'app-shell-loaded': '_onAppShellLoaded',
+        'dom-change': '_onDomChange',
+        'notify': '_onNotify'
+      },
+
+      observers: [
+        '_routePageChanged(_routeData.page)',
+        '_wideChanged(app.isLaptopWide, app.isLargeWide)'
+      ],
+
+      created: function() {
+        window.performance && performance.mark && performance.mark(this.is + ' - created');
+        // Custom elements polyfill safe way to indicate an element has been upgraded.
+        this.removeAttribute('unresolved');
+      },
+
+      ready: function() {
+        // Browsers without native support of Web Components
+        if (!this._isSetCssProperties) {
+          this._setCssProperties(this.app.isLaptopWide, this.app.isLargeWide);
+        }
+
+        // Listen for online/offline network status
+        Polymer.RenderStatus.afterNextRender(this, function() {
+          this.listen(window, 'online', '_notifyNetworkStatus');
+          this.listen(window, 'offline', '_notifyNetworkStatus');
+        });
+      },
+
+      _computeShellBackgroundClasses: function(page) {
+        var classes = '';
+        var route = this._route.path.split('/');
+        var isRouteTail = route.length >= 3 && route[route.length - 1] !== '';
+
+        if (this.app.isTabletWide && page !== '' || !this.app.isTabletWide && (page === 'sign-in' && !isRouteTail)) {
+          classes = 'Shell--backgroundImage';
+        } else if (this.app.isTabletWide && page === '') {
+          classes = 'Shell--secondaryBackground';
+        } else {
+          classes = 'Shell--primaryBackground';
+        }
+
+        if (this._isBackgroundLoaded) {
+          classes += ' loaded';
+        }
+
+        return classes;
+      },
+
+      _notifyNetworkStatus: function() {
+        var oldOffline = this.app.isOffline;
+        this.set('app.isOffline', !navigator.onLine);
+
+        // Show the app-snackbar if the user is offline when starting a new session
+        // or if the network status changed.
+        if (this.app.isOffline || (!this.app.isOffline && oldOffline === true)) {
+          this.fire('notify', this.app.isOffline ? 'you-are-offline' : 'you-are-online');
+        }
+      },
+
+      // Elements in the app can notify a change to be a11y announced.
+      _onAnnounce: function(e) {
+        this._announce(e.detail);
+      },
+
+      // A11y announce the given message.
+      _announce: function(message) {
+        this._a11yLabel = '';
+        this.debounce('_a11yAnnouncer', function() {
+          this._a11yLabel = message;
+        }, 100);
+      },
+
+      _onAppAuthButtonTap: function(event) {
+        this.$.auth.onButtonTap(event.detail);
+      },
+
+      _onAppInit: function() {
+        // Chrome with native support of Web Components
+        var isLaptopWide = window.matchMedia('screen and (min-width:960px)').matches;
+        var isLargeWide = window.matchMedia('screen and (min-width:1600px)').matches;
+
+        this._setCssProperties(isLaptopWide, isLargeWide);
+        this._isSetCssProperties = true;
+      },
+
+      _onAppShellLoaded: function() {
+        // Load lazy resources after render.
+        Polymer.RenderStatus.afterNextRender(this, function() {
+          this.importHref(this.resolveUrl('app-lazy-resources.html'), function() {
+            this.importHref(this.resolveUrl('app-service-worker.html'), function() {
+
+            });
+          });
+        });
+      },
+
+      _onBackgroundLoad: function() {
+        this._isBackgroundLoaded = true;
+        this.$.shell.onBackgroundLoad();
+        this.$.shell.classList.add('loaded');
+        this.$.shell.updateStyles();
+      },
+
+      // This is for performance logging only.
+      _onDomChange: function(e) {
+        if (window.performance && performance.mark && !this.__loggedDomChange) {
+          var target = Polymer.dom(e).rootTarget;
+          if (target.domHost.is.match(this.page)) {
+            this.__loggedDomChange = true;
+            performance.mark(target.domHost.is + '.domChange');
+          }
+        }
+      },
+
+      _onNotify: function(event) {
+        if (Polymer.isInstance(this.$.snackbar)) {
+          this.$.snackbar.show(event.detail);
+        } else {
+          this.importHref(this.resolveUrl('app-ui-components/app-snackbar/app-snackbar.html'), function() {
+            this.$.snackbar.show(event.detail);
+          });
+        }
+      },
+
+      _routePageChanged: function(page) {
+        // Clear page title for lazy loaded pages.
+        this.set('app.pageTitle', '');
+
+        // Initiate download of lazy loaded background image.
+        if (this.app.isTabletWide || !this.app.isTabletWide && (page === '' || page === 'sign-in' && !isRouteTail)) {
+          if (!this._isBackgroundLoaded) {
+            this.$.background.src = '../images/background.jpg';
+          }
+        }
+
+        // Handle subroutes that doesn't exists.
+        var isRouteTail = this._route.path.split('/').length >= 3;
+        if (page !== 'sign-in' && isRouteTail) {
+          this.page = '404';
+          return;
+        }
+
+        if (page) {
+          if (this.$.shell.$.pages.$[page]) {
+            this.page = page;
+          } else {
+            this.page = '404';
+          }
+        } else {
+          this.page = 'home';
+        }
+      },
+
+      // Set CSS custom properties using shim that Polymer provides
+      // Fix issue: CSS variables in Polymer ignore media queries https://github.com/Polymer/polymer/issues/2149
+      // TODO: Resolve double running of _setCssProperties by reload page
+      _setCssProperties: function(isLaptopWide, isLargeWide) {
+        // this._log('_setCssProperties');
+        if (isLargeWide) {
+          this.customStyle['--app-drawer-width'] = '296px';
+          this.customStyle['--gutter'] = '24px';
+          this.customStyle['--screen-edge-margin'] = '40px';
+        } else if (isLaptopWide) {
+          this.customStyle['--app-drawer-width'] = '256px';
+          this.customStyle['--gutter'] = '24px';
+          this.customStyle['--screen-edge-margin'] = '24px';
+        } else {
+          this.customStyle['--gutter'] = '16px';
+          this.customStyle['--screen-edge-margin'] = '16px';
+        }
+
+        this.async(function() {
+          this.updateStyles();
+        });
+      },
+
+      _wideChanged: function(isLaptopWide, isLargeWide) {
+        this.debounce('_wideChanged', function() {
+          this._setCssProperties(isLaptopWide, isLargeWide);
+        });
+      }
+
+    });
+
+  </script>
+
+</dom-module>

@@ -1,0 +1,151 @@
+<!--
+@license
+Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="app-behaviors/app-logger-behavior.html">
+
+
+<dom-module id="app-service-worker">
+
+  <script>
+
+    Polymer({
+
+      is: 'app-service-worker',
+
+      properties: {
+        /**
+         * By default, the service worker will use a scope that applies to all pages at the same
+         * directory level or lower. This is almost certainly what you want, as illustrated by the
+         * following hypothetical serving setup:
+         *
+         * ```
+         * /root/
+         *   service-worker.js
+         *   index.html
+         *   subdir1/
+         *     index.html
+         *   subdir2/
+         *     index.html
+         * ```
+         *
+         * So by default, registering `/root/service-worker.js` will cause the service worker's scope
+         * to cover `/root/index.html`, `/root/subdir1/index.html`, and `/root/subdir2/index.html`.
+         *
+         * If, for some reason, you need to register `/root/service-worker.js` from within
+         * `/root/subdir1/index.html`, *and* you want that registration to only cover
+         * `/root/subdir1/**`, you can override this `scope` property and set it to `'./'`.
+         *
+         * There is more context about default scopes and how scope overrides work in
+         * [this Stack Overflow](http://stackoverflow.com/a/33881341/385997) response.
+         *
+         * @see {@link https://slightlyoff.github.io/ServiceWorker/spec/service_worker/#navigator-service-worker-register}
+         */
+        scope: {
+          type: String,
+          value: null
+        },
+
+        _isAlreadyRegistered: {
+          type: Boolean,
+          value: false
+        }
+
+      },
+
+      behaviors: [
+        AppBehaviors.AppLoggerBehavior
+      ],
+
+      attached: function() {
+        this.async(function() {
+          if (!this._isAlreadyRegistered) {
+            this._isAlreadyRegistered = true;
+
+            if ('serviceWorker' in navigator) {
+              this._registerServiceWorker('../service-worker.js');
+            } else {
+              this._error('Service Workers are not available in the current browser.');
+            }
+          }
+        });
+      },
+
+      _registerServiceWorker: function(serviceWorkerUrl) {
+        var options = this.scope ? {scope: this.scope} : null;
+
+        navigator.serviceWorker.register(serviceWorkerUrl, options).then(function(registration) {
+          if (registration.active) {
+            this._log('Service Worker already installed.');
+          }
+
+          registration.onupdatefound = function() {
+            this._log('A new Service Worker version has been found...');
+            var installingWorker = registration.installing;
+
+            installingWorker.onstatechange = function() {
+              switch (installingWorker.state) {
+                case 'installed':
+                  if (navigator.serviceWorker.controller) {
+                    this.fire('notify', {
+                      icon: 'update',
+                      message: 'new-version-app',
+                      buttonText: 'refresh',
+                      buttonTapHandler: function() { // Handler for app-snackbar _onButtonTap
+                        window.location.reload();
+                      },
+                      duration: 0 // Duration 0 indications shows the app-snackbar indefinitely.
+                    });
+
+                    this._log('The Service Worker was updated. Reload page for the new version.');
+                  } else {
+                    this.fire('notify', {
+                      type: 'confirm',
+                      icon: 'cached',
+                      message: 'caching-complete'
+                    });
+                    this._log('A new Service Worker was installed.');
+                  }
+                break;
+
+                case 'redundant':
+                  this.fire('notify', {
+                    icon: 'update',
+                    message: 'new-version-app',
+                    buttonText: 'refresh',
+                    buttonTapHandler: function() { // Handler for app-snackbar _onButtonTap
+                      window.location.reload();
+                    },
+                    duration: 0 // Duration 0 indications shows the app-snackbar indefinitely.
+                  });
+
+                  this._trackError('The installing Service Worker became redundant. Reload page for the new version.');
+                break;
+
+                default:
+                  this._log("New Service Worker state: ", installingWorker.state);
+              }
+            }.bind(this);
+          }.bind(this);
+        }.bind(this)).catch(function(error) {
+          this._trackError('Service Worker registration failed:', error.toString());
+
+          if (error.name === 'NetworkError') {
+            var location = serviceWorkerUrl.origin + serviceWorkerUrl.pathname;
+            this._error('A valid Service Worker script was not found at ' + location);
+          }
+        }.bind(this));
+      }
+
+    });
+
+  </script>
+
+</dom-module>

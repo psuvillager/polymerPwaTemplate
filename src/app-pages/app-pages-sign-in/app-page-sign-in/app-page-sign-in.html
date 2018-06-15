@@ -1,0 +1,350 @@
+<!--
+@license
+Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../../../bower_components/iron-icon/iron-icon.html">
+<link rel="import" href="../../../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../../../bower_components/paper-fab/paper-fab.html">
+<link rel="import" href="../../../../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../../../app-behaviors/app-localize-behavior.html">
+<link rel="import" href="../../../app-themes/current-theme/shared-styles/pages-shared-styles.html">
+<link rel="import" href="app-icons-sign-in.html">
+
+<dom-module id="app-page-sign-in">
+
+  <template>
+
+    <style include="pages-shared-styles">
+
+      :host {
+        @apply(--layout);
+      }
+
+      .Button {
+        @apply(--layout-start-justified);
+
+        font-weight: 400;
+        letter-spacing: normal;
+        text-transform: none;
+        width: 256px;
+      }
+
+      .Button--email {
+        @apply(--button-text-shadow);
+
+        background-color: var(--google-red-700);
+        color: #fff;
+      }
+
+      .Button--facebook {
+        @apply(--button-text-shadow);
+
+        background-color: #3b5998;
+        color: #fff;
+      }
+
+      .Button--google {
+        background-color: #fff;
+        border: 1px solid #d9d9d9;
+        color: #737373;
+      }
+
+      .Container-buttons {
+        @apply(--layout-vertical);
+
+        padding-bottom: 64px;
+      }
+
+      .Container-logo {
+        @apply(--layout-flex);
+        @apply(--layout-vertical);
+        @apply(--layout-center-center);
+
+        min-height: 96px;
+      }
+
+      .Logo {
+        color: #fff;
+        height: 200px;
+        width: 200px;
+      }
+
+      .Page-container {
+        @apply(--layout-vertical);
+        @apply(--layout-center);
+        @apply(--layout-end-justified);
+      }
+
+      .SignIn {
+        box-sizing: border-box;
+        height: 52px;
+        width: 256px;
+        padding: 8px 0;
+      }
+
+      /* Tablet wide */
+      @media screen and (min-width: 600px) {
+        .Logo {
+          height: 300px;
+          width: 300px;
+        }
+      }
+
+      /* Laptop wide */
+      @media screen and (min-width: 960px) {
+        .Button {
+          width: 272px;
+        }
+
+        .Container-buttons {
+          @apply(--layout-horizontal);
+
+          padding-bottom: 128px;
+        }
+
+        .Container-logo {
+          margin-bottom: var(--gutter);
+        }
+
+        .Input {
+          --paper-input-container-color: #fff;
+          --paper-input-container-focus-color: #fff;
+          --paper-input-container-input-color: #fff;
+          --paper-input-container-invalid-color: var(--paper-orange-a100);
+
+          height: 60px;
+          margin: var(--gutter) 0;
+          width: 208px;
+        }
+
+        .SignIn {
+          @apply(--layout-vertical);
+          @apply(--layout-center);
+          @apply(--layout-end-justified);
+
+          border-radius: 3px;
+          margin: 0 calc(var(--gutter) / 2);
+          height: 272px;
+          width: 272px;
+          padding: 0;
+        }
+
+        .SignIn--email {
+          background-color: rgba(197, 57, 41, 0.5);
+        }
+
+        .SignIn--facebook {
+          background-color: rgba(59, 89, 152, 0.4);
+        }
+
+        .SignIn--google {
+          background-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .SignIn-fab {
+          height: 96px;
+          width: 96px;
+          margin-bottom: 116px;
+          --paper-fab-iron-icon: {
+            height: 48px;
+            width: 48px;
+          };
+        }
+
+        .SignIn-fab--email {
+          --paper-fab-background: var(--google-red-700);
+          --paper-fab-keyboard-focus-background: var(--paper-red-900);
+          color: #fff;
+          margin-bottom: 8px;
+        }
+
+        .SignIn-fab--facebook {
+          --paper-fab-background: #3b5998;
+          --paper-fab-keyboard-focus-background: #2F4779;
+          color: #fff;
+        }
+
+        .SignIn-fab--google {
+          --paper-fab-background: #fff;
+          --paper-fab-keyboard-focus-background: #737373;
+          color: #737373;
+        }
+      }
+
+      /* Large wide */
+      @media screen and (min-width: 1600px) {
+
+      }
+
+      /* Landscape phone height */
+      @media screen and (orientation: landscape) and (max-height: 450px) {
+        .Container-buttons {
+          padding-bottom: 8px;
+        }
+
+        .Container-logo {
+          height: calc(100vh - 228px);
+        }
+
+        .Logo {
+          height: 96px;
+          width: 96px;
+        }
+      }
+
+      /* Print mode */
+      @media print {
+
+      }
+
+    </style>
+
+    <div class="Page-container Page-container--fullHeight">
+
+      <div class="Container-logo">
+        <iron-icon class="Logo" icon="header:rocket"></iron-icon>
+      </div>
+
+      <div class="Container-buttons">
+
+        <div class="SignIn SignIn--google">
+          <paper-fab class="SignIn-fab SignIn-fab--google" icon="sign-in:google"
+                     title="{{localize('sign-in-google')}}"
+                     hidden$="{{!app.isLaptopWide}}"
+                     on-tap="_onGoogleButtonTap"></paper-fab>
+          <paper-button class="Button Button--google" raised on-tap="_onGoogleButtonTap">
+            <iron-icon class="Button-icon" icon="sign-in:google"></iron-icon>
+            {{localize('sign-in-google')}}
+          </paper-button>
+        </div>
+
+        <div class="SignIn SignIn--facebook">
+          <paper-fab class="SignIn-fab SignIn-fab--facebook" icon="sign-in:facebook"
+                     title="{{localize('sign-in-facebook')}}"
+                     hidden$="{{!app.isLaptopWide}}"
+                     on-tap="_onFacebookButtonTap"></paper-fab>
+          <paper-button class="Button Button--facebook" raised on-tap="_onFacebookButtonTap">
+            <iron-icon class="Button-icon" icon="sign-in:facebook"></iron-icon>
+            {{localize('sign-in-facebook')}}
+          </paper-button>
+        </div>
+
+        <div class="SignIn SignIn--email">
+          <paper-fab class="SignIn-fab SignIn-fab--email" icon="sign-in:mail"
+                     title="{{localize('sign-in-email')}}"
+                     hidden$="{{!app.isLaptopWide}}"
+                     on-tap="_onEmailButtonTap"></paper-fab>
+          <!-- Input pattern attribute from site http://stackoverflow.com/a/36379040 -->
+          <paper-input class="Input" id="emailInput"
+                       name="username" type="text" autocomplete="username"
+                       autofocus auto-validate required
+                       pattern="[^@\s]+@[^@\s]+\.[^@\s]+"
+                       label="{{localize('enter-your-email')}}"
+                       error-message="{{localize('invalid-email-address')}}"
+                       hidden$="{{!app.isLaptopWide}}"
+                       on-keydown="_onEmailInputKeyDown"></paper-input>
+          <paper-button class="Button Button--email" raised on-tap="_onEmailButtonTap">
+            <iron-icon class="Button-icon" icon="sign-in:mail"></iron-icon>
+            {{localize('sign-in-email')}}
+          </paper-button>
+        </div>
+
+      </div>
+
+    </div>
+
+  </template>
+
+  <script>
+
+    Polymer({
+
+      is: 'app-page-sign-in',
+
+      properties: {
+        active: {
+          type: Boolean,
+          value: false,
+          observer: '_activeChanged'
+        },
+
+        app: Object,
+
+        _isLocalesLoaded: {
+          type: Boolean,
+          value: false
+        }
+      },
+
+      behaviors: [
+        AppBehaviors.AppLocalizeBehavior
+      ],
+
+      listeners: {
+        'app-resources-loaded': '_onLocalesLoaded'
+      },
+
+      _activeChanged: function() {
+        if (this.active) {
+          if (this._isLocalesLoaded) {
+            this.set('app.pageTitle', this.localize('sign-in'));
+          } else {
+            this.loadLocales('app-pages-sign-in');
+          }
+          this.$.emailInput.value = '';
+          this.$.emailInput.focus();
+        }
+      },
+
+      _onLocalesLoaded: function(event) {
+        event.stopPropagation();
+        this._isLocalesLoaded = true;
+        this.set('app.pageTitle', this.localize('sign-in'));
+      },
+
+      _onEmailButtonTap: function() {
+        if (!this.$.emailInput.validate() && this.app.isLaptopWide) {
+          this.$.emailInput.focus();
+          return false;
+        }
+
+        this.fire('app-auth-on-button-tap', {
+          button: 'signInEmail',
+          email: this.$.emailInput.value
+        });
+      },
+
+      _onEmailInputKeyDown: function(event) {
+        if (!this.$.emailInput.validate()) {
+          return false;
+        }
+
+        if (event.which === 13 || event.key === 'Enter') {
+          this._onEmailButtonTap();
+        }
+      },
+
+      _onFacebookButtonTap: function() {
+        this.fire('app-auth-on-button-tap', {
+          button: 'signInFacebook'
+        });
+      },
+
+      _onGoogleButtonTap: function() {
+        this.fire('app-auth-on-button-tap', {
+          button: 'signInGoogle'
+        });
+      }
+
+    });
+
+  </script>
+
+</dom-module>

@@ -1,0 +1,10 @@
+{
+  "en": {
+    "error-404": "Error 404 - Page not found",
+    "homepage": "homepage",
+    "maybe-head-back": "Maybe head back to the",
+    "or-use-links": "or use one of the menu links instead?",
+    "page-not-found": "Page not found.",
+    "we-are-sorry": "We're sorry, but the Polymerosaurus can't find the page at URL address {url}."
+  }
+}

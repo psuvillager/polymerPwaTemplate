@@ -1,0 +1,217 @@
+<!--
+@license
+Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/app-layout/app-drawer/app-drawer.html">
+<link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
+<link rel="import" href="../../bower_components/iron-selector/iron-selector.html">
+<link rel="import" href="../app-behaviors/app-localize-behavior.html">
+<link rel="import" href="app-icons-drawer.html">
+
+<dom-module id="app-shell-drawer">
+
+  <template>
+
+    <style>
+
+      :host {
+        display: block;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      .Drawer {
+        z-index: 30;
+      }
+
+      .Drawer-content {
+        @apply(--layout-vertical);
+
+        background-color: var(--primary-background-color);
+        color: var(--primary-text-color);
+        height: 100%;
+        overflow-y: auto;
+        /* Momentum Scrolling on iOS Overflow Elements
+           https://css-tricks.com/snippets/css/momentum-scrolling-on-ios-overflow-elements/ */
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .Drawer-footer {
+        @apply(--paper-font-caption);
+
+        border-top: 1px solid var(--divider-color);
+        padding: var(--spacing-unit) 0 var(--spacing-unit) var(--screen-edge-margin);
+      }
+
+      .Drawer-footerIcon {
+        height: 18px;
+        width: 18px;
+      }
+
+      .Drawer-header {
+        @apply(--layout-vertical);
+        @apply(--layout-center-center);
+
+        background-color: var(--primary-background-color);
+        color: var(--primary-text-color);
+        height: 128px;
+      }
+
+      .Drawer-headerLogo {
+        height: 50px;
+        width: 50px;
+      }
+
+      .Drawer-link {
+        color: currentColor;
+        text-decoration: none;
+      }
+
+      .Drawer-widget {
+        padding: var(--spacing-unit) 0;
+      }
+
+      .Navigation-icon {
+        margin-right: var(--gutter);
+        pointer-events: none;
+      }
+
+      .Navigation-link {
+        @apply(--layout-horizontal);
+        @apply(--layout-center);
+        @apply(--paper-font-navigation);
+
+        color: currentColor;
+        cursor: pointer;
+        height: var(--touch-target-size);
+        padding-left: var(--screen-edge-margin);
+        padding-right: var(--gutter);
+        text-decoration: none;
+        outline: none;
+      }
+
+      .Navigation-link.iron-selected {
+        @apply(--small-font-text-shadow);
+
+        color: var(--accent-link-color);
+        font-weight: 500;
+      }
+
+      .Navigation-text {
+        pointer-events: none;
+      }
+
+      .u-spacer {
+        @apply(--layout-flex);
+      }
+
+    </style>
+
+    <app-drawer class="Drawer" opened="{{opened}}" swipe-open>
+      <div class="Drawer-content">
+
+        <div>
+          <div class="Drawer-header">
+            <iron-icon class="Drawer-headerLogo" icon="header:rocket"></iron-icon>
+          </div>
+        </div>
+
+        <div class="Drawer-widget">
+          <iron-selector class="Navigation" selected="[[page]]" attr-for-selected="name" role="navigation">
+
+            <a class="Navigation-link" name="home" href="/">
+              <iron-icon class="Navigation-icon" icon="drawer:home"></iron-icon>
+              <span class="Navigation-text">{{localize('home')}}</span>
+            </a>
+
+            <a class="Navigation-link" name="sign-in" href="/sign-in" hidden$="[[app.isSignedIn]]">
+              <iron-icon class="Navigation-icon" icon="drawer:sign-in"></iron-icon>
+              <span class="Navigation-text">{{localize('sign-in')}}</span>
+            </a>
+
+            <div class="Navigation-link" hidden$="[[!app.isSignedIn]]" on-tap="_onSignOutTap">
+              <iron-icon class="Navigation-icon" icon="drawer:sign-out"></iron-icon>
+              <span class="Navigation-text">{{localize('sign-out')}}</span>
+            </div>
+
+            <a class="Navigation-link" name="contact-us" href="/contact-us">
+              <iron-icon class="Navigation-icon" icon="drawer:mail"></iron-icon>
+              <span class="Navigation-text">{{localize('contact-us')}}</span>
+            </a>
+
+          </iron-selector>
+        </div>
+
+        <div class="u-spacer"></div>
+
+        <div class="Drawer-footer">
+          <a class="Drawer-link" href="https://github.com/StartPolymer/progressive-web-app-template" target="_blank">
+            {{localize('made-with')}}
+            <iron-icon class="Drawer-footerIcon" icon="drawer:love"></iron-icon>
+            {{localize('by')}}
+            StartPolymer
+          </a>
+        </div>
+
+      </div>
+    </app-drawer>
+
+  </template>
+
+  <script>
+
+    Polymer({
+
+      is: 'app-shell-drawer',
+
+      properties: {
+        app: Object,
+
+        opened: {
+          type: Boolean,
+          notify: true
+        },
+
+        page: {
+          type: String,
+          reflectToAttribute: true
+        }
+      },
+
+      behaviors: [
+        AppBehaviors.AppLocalizeBehavior
+      ],
+
+      listeners: {
+        'app-resources-loaded': '_onLocalesLoaded'
+      },
+
+      attached: function() {
+        this.loadLocales('app-shell');
+      },
+
+      _onLocalesLoaded: function(event) {
+        event.stopPropagation();
+      },
+
+      _onSignOutTap: function() {
+        this.opened = false;
+        this.fire('app-auth-on-button-tap', {
+          button: 'signOut'
+        });
+      }
+
+    });
+
+  </script>
+
+</dom-module>

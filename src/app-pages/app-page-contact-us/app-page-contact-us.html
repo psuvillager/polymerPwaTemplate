@@ -1,0 +1,164 @@
+<!--
+@license
+Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../../bower_components/iron-form/iron-form.html">
+<link rel="import" href="../../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../../../bower_components/paper-input/paper-textarea.html">
+<link rel="import" href="../../../bower_components/paper-material/paper-material.html">
+<link rel="import" href="../../app-behaviors/app-localize-behavior.html">
+<link rel="import" href="../../app-themes/current-theme/shared-styles/pages-shared-styles.html">
+<link rel="import" href="app-icons-contact-us.html">
+
+<dom-module id="app-page-contact-us">
+
+  <template>
+
+    <style include="pages-shared-styles">
+
+      :host {
+        @apply(--layout);
+      }
+
+      .Button-touchTarget {
+        @apply(--layout-self-end);
+
+        margin-right: 0;
+        margin-top: calc(var(--gutter) * 2);
+      }
+
+      .Form {
+        @apply(--layout-vertical);
+      }
+
+      .Page-title {
+        margin-bottom: 24px;
+        text-align: center;
+        width: 100%;
+      }
+
+      /* Tablet wide */
+      @media screen and (min-width: 600px) {
+        .Form {
+          width: 50%;
+        }
+      }
+
+    </style>
+
+    <div class="Page-container Page-container--center Page-container--fullHeight">
+      <paper-material class="Page-card Page-card--expand" elevation="3">
+
+        <h1 class="Page-title" hidden$="{{!app.isTabletWide}}">{{localize('contact-us')}}</h1>
+
+        <form class="Form" id="form" is="iron-form" method="get" action="/" on-iron-form-submit="_onFormSubmit">
+          <paper-input class="Input" id="emailInput"
+                       name="username" type="text" autocomplete="username"
+                       autofocus auto-validate required
+                       value="{{app.userAuthEmail}}"
+                       pattern="[^@\s]+@[^@\s]+\.[^@\s]+"
+                       label="{{localize('your-email')}}"
+                       error-message="{{localize('invalid-email-address')}}"
+                       on-keydown="_onEmailInputKeyDown"></paper-input>
+          <paper-textarea class="Input" id="messageInput"
+                          required
+                          label="{{localize('message')}}"
+                          on-keydown="_onMessageInputKeyDown"></paper-textarea>
+          <div class="Button-touchTarget" on-tap="_onSendButtonTap">
+            <paper-button class="Button Button--shadowText" raised>{{localize('send')}}</paper-button>
+          </div>
+        </form>
+
+      </paper-material>
+    </div>
+
+  </template>
+
+  <script>
+
+    Polymer({
+
+      is: 'app-page-contact-us',
+
+      properties: {
+        active: {
+          type: Boolean,
+          value: false,
+          observer: '_activeChanged'
+        },
+
+        app: Object,
+
+        _isLocalesLoaded: {
+          type: Boolean,
+          value: false
+        }
+      },
+
+      behaviors: [
+        AppBehaviors.AppLocalizeBehavior
+      ],
+
+      listeners: {
+        'app-resources-loaded': '_onLocalesLoaded'
+      },
+
+      _activeChanged: function() {
+        if (this.active) {
+          if (this._isLocalesLoaded) {
+            this.set('app.pageTitle', this.localize('contact-us'));
+          } else {
+            this.loadLocales(this.is);
+          }
+        }
+      },
+
+      _onEmailInputKeyDown: function(event) {
+        if (!this.$.emailInput.validate()) {
+          return false;
+        }
+
+        if (event.which === 13 || event.key === 'Enter') {
+          this.$.messageInput.focus();
+        }
+      },
+
+      _onFormSubmit: function() {
+        this.fire('notify', 'your-message-sent');
+      },
+
+      _onLocalesLoaded: function(event) {
+        event.stopPropagation();
+        this._isLocalesLoaded = true;
+        this.set('app.pageTitle', this.localize('contact-us'));
+      },
+
+      _onMessageInputKeyDown: function(event) {
+        if (!this.$.messageInput.validate()) {
+          return false;
+        }
+
+        if (event.ctrlKey && (event.which === 13 || event.key === 'Enter')) {
+          this._onSendButtonTap();
+        }
+      },
+
+      _onSendButtonTap: function() {
+        if (this.$.form.validate()) {
+          this.$.form.submit();
+        }
+      }
+
+    });
+
+  </script>
+
+</dom-module>
